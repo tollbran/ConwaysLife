@@ -38,6 +38,8 @@
 
 10 Constant Update-Timer  { Sets windows update rate - lower = faster refresh            }
 
+5000 CONSTANT cycles
+
 variable bmp-x-size     { x dimension of bmp file                                        }
 
 variable bmp-y-size     { y dimension of bmp file                                        }
@@ -72,9 +74,17 @@ VARIABLE pixel_loc
 
 VARIABLE apperture_start
 
-8 bmp-x-size !                               { Set default x size of bmp in pixels     }
+VARIABLE row
 
-8 bmp-y-size !                               { Set y default size of bmp in pixels     }
+VARIABLE weighting
+
+VARIABLE alive_cells
+
+VARIABLE generation
+
+256 bmp-x-size !                               { Set default x size of bmp in pixels     }
+
+256 bmp-y-size !                               { Set y default size of bmp in pixels     }
 
 bmp-x-size @ 4 / 1 max 4 *  bmp-x-size !       { Trim x-size to integer product of 4     }
 
@@ -88,6 +98,49 @@ bmp-size   @ 3 * 54 +       bmp-length !       { Find length of bmp in chars inc
 
 : bmp-Wind-Name Z" BMP Display " ;             { Set capion of the display window # 1    }
 
+20 weighting !                                 { Sets weighting that a cell is alive here 10-100 }
+ 
+256 width !                                    { Sets default width                      }
+  
+width @ dup *  size !                          { Sets default size                       }
+
+0 generation !                                 { Sets starting generation to 0           }
+
+{ --------------------------------- File writing stuff ---------------------------------- } 
+
+variable test-file-id                             { Create Variable to hold file id handle }
+
+
+: make-test-file                                  { Create a test file to read / write to  }
+  s" C:\ForthInc-Evaluation\Projects\ConwaysLife\Test20.dat" r/w create-file drop     { Create the file                        } 
+  test-file-id !                                  { Store file handle for later use        }
+;
+
+ 
+: open-test-file                                  { Open the file for read/write access    }
+  s" C:\ForthInc-Evaluation\Projects\ConwaysLife\Test20.dat" r/w open-file drop       { Not needed if we have just created     }
+  test-file-id !                                  { file.                                  }
+;
+
+
+: close-test-file                                 { Close the file pointed to by the file  }
+  test-file-id @                                  { handle.                                }
+  close-file drop
+; 
+
+
+: test-file-size                                  { Leave size of file on top of stack as  }
+  test-file-id @                                  { a double prescision integer if the     }
+  file-size drop                                  { file is open.                          }
+;
+
+: write-gen-alive
+  generation @ (.) test-file-id @ write-file drop   
+  s"  "     test-file-id @ write-file drop
+  s"  "     test-file-id @ write-file drop
+  s"  "     test-file-id @ write-file drop
+  alive_cells @  (.) test-file-id @ write-line drop  
+;
 
 { -------------------------  Random number routine for testing ------------------------- } 
 
@@ -116,7 +169,12 @@ array index @
 
 : fill_array
    size @ 0 DO
-    2 RND array I + c!
+    100 RND weighting @ <
+	IF
+		1 array I + c!
+	ELSE
+	    0 array I + c!
+	THEN
    LOOP ;
 
 : reset_array
@@ -160,21 +218,33 @@ array index @
 : count_neighbours 
   pixel_loc @ width @ - 1 - apperture_start !
   3 0 DO 
+   apperture_start @ array -
+   width @ / row !
    3 0 DO
-    apperture_start @ array < { Acts as a defacto top border }
-    0 =
-    IF
-    apperture_start @ array size + > { Acts as a defacto bottom border }
-    0 =
-     IF
-      apperture_start @ c@
-      1 =
-      IF
-       neighbours @ 1 + neighbours !
-      THEN
-     THEN 
-    THEN
-     1 apperture_start @ + apperture_start !
+		apperture_start @ array < { Acts as a defacto top border }
+		0 =
+		IF
+			apperture_start @ array size + > { Acts as a defacto bottom border }
+			0 =
+			IF
+				row @ width @ * array + { Calculates the left border }
+				apperture_start @ >
+				0 =
+				IF 
+					row @ 1 + width @ * array + 1 - { Calculates right border }
+					apperture_start @ <
+					0 =
+					IF
+						apperture_start @ c@
+						1 =
+						IF
+							neighbours @ 1 + neighbours !
+						THEN
+					THEN
+				THEN
+			THEN 
+		THEN
+		1 apperture_start @ + apperture_start !
    LOOP
    width @ 1 - apperture_start @ + 2 - apperture_start !
   LOOP
@@ -186,20 +256,21 @@ array index @
     array I + pixel_loc !
     count_neighbours
     array I + c@ 1 =
-    IF                                  { Detects if the cell is alive or dead }
-     neighbours @ 1 - neighbours !      { Excludes itself }
+    IF                                    { Detects if the cell is alive or dead }
+     neighbours @ 1 - neighbours !        { Excludes itself }
      neighbours @ 3 = neighbours @ 2 = OR { Rule if there is 2 or three alive cells next } 
+	 alive_cells @ 1 + alive_cells !
      IF
-      1 array_temp I + c!             { Sets position to dead }
+      1 array_temp I + c!                 { Sets cell to alive}
      ELSE
-      0 array_temp I + c!
+      0 array_temp I + c!                 { Sets cell to dead }
      THEN
     ELSE
-     neighbours @ 3 =                { Rule if there is 3 live cells next to dead revive }
+     neighbours @ 3 =                     { Rule if there is 3 live cells next to dead revive }
      IF
-      1 array_temp I + c!              { Sets position to alive }
+      1 array_temp I + c!                 { Sets cell to alive }
      ELSE
-      0 array_temp I + c!
+      0 array_temp I + c!                 { Sets cell to dead }
      THEN
     THEN 
    LOOP
@@ -211,6 +282,7 @@ array index @
     array I + c!
    LOOP
    ;
+
 
 { --------------------------- Words to create a bmp file in memory ----------------------- }
 
@@ -467,7 +539,7 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
   bmp-address 22 + @                      { Height of source rectangle                  }
   bmp-address dup 54 + swap 14 +          { address of bitmap bits, bitmap header       }
   0                                       { usage                                       }
-  13369376                                { raster operation code                       } 
+  13369376                                { raster operation code                       }  
   StretchDIBits drop
   ;
 
@@ -483,7 +555,7 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
   50 0 Do                             { Begin update / display loop                     }
   bmp-address @ Random-bmp-Green      { Add random pixels to .bmp in memory             }
   bmp-to-screen-copy                  { Copy .bmp to display window                     }
-  100 ms                              { Delay for viewing ease, reduce for higher speed }
+  10000 ms                              { Delay for viewing ease, reduce for higher speed }
   Loop
   bmp-window-handle @ DestroyWindow drop  
   cr ." Ending looped copy to window test " 
@@ -496,73 +568,27 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
   cr cr
   New-bmp-Window-stretch              { Create new "stretch" window                     }
   bmp-window-handle !                 { Store window handle                             }
-  Begin	                              { Begin update / display loop                     } 
-  {  All code which runs the program goes here  }
-  0 pos !
-  { fill_array   }                    { Fills the array with a random set of 1-0s       }
-  bmp-address @ set-pixel             { Reads the array and puts associated data in bnp }
-  bmp-address @ bmp-to-screen-stretch { Stretch .bmp to display window                  }
-  pixel_update 
-  data_transfer
-  1000 ms                              { Delay for viewing ease, reduce for higher speed }
-  key?                                 { Break test loop on key press                    }
-
-  until 
+  make-test-file
+  fill_array                          { Fills the array with a random set of 1-0s       }
+  cycles 0 DO
+  
+	{  All code which runs the program goes here  }
+  
+	0 pos !
+	0 alive_cells !
+	bmp-address @ set-pixel             { Reads the array and puts associated data in bnp }
+	bmp-address @ bmp-to-screen-stretch { Stretch .bmp to display window                  }
+	pixel_update                        { Enforces life rules and output to temp array    }
+	data_transfer                       { Transfers data from temp array to main one      }
+	generation @ 1 + generation !       { Moves onto next generation                      }
+	write-gen-alive
+	10 ms                             { Delay for viewing ease, reduce for higher speed }
+	
+  LOOP
+  close-test-file
   cr ." Ending looped stretch to window test " 
   cr cr
   ;
-
-
-: go-dark                              { Draw bmp to screen at variable pixel size       }
-  New-bmp-Window-stretch
-  bmp-window-handle !
-  bmp-address @ Random-bmp-Blue        { Show random blue pixels for a second            }
-  bmp-address @ bmp-to-screen-stretch 
-  1000 ms
-  bmp-address @ Random-bmp-Green       { Show random greenpixels for a second            }
-  bmp-address @ bmp-to-screen-stretch
-  1000 ms
-  bmp-address @ reset-bmp-pixels       { Reset .bmp to all black 0,0,0 RGB values        }
-  bmp-address @ bmp-to-screen-stretch
-  200 ms
-  bmp-window-handle @ DestroyWindow drop  { Kill of display window                       }
-  ;
-
-
-: paint-pixels                  { Create a blank .bmp and then paint individual pixels   }
-  cr ." Starting single pixel paint test " cr
-  New-bmp-Window-stretch
-  bmp-window-handle !
-  bmp-address @ bmp-to-screen-stretch   { Write black bmp to screen }
-
-  10 ms 
-  54 offset !	                               { Paint 1st corner }
-  255 bmp-address @ offset @ + 0 + C!  
-  1000 ms bmp-address @ bmp-to-screen-stretch
-
-  10 ms                                        { Paint 2nd corner }
-  54 bmp-x-size @ 1 - 3 * + offset !
-  255 bmp-address @ offset @ + 1 + C! 
-  1000 ms bmp-address @ bmp-to-screen-stretch
-
-  10 ms                                        { Paint 3rd corner }
-  54 bmp-x-size @ 1 - bmp-y-size @ * 3 * + offset !
-  255 bmp-address @ offset @ + 2 + C!  
-  1000 ms bmp-address @ bmp-to-screen-stretch
-
-  10 ms                                        { Paint 4th corner }
-  54 bmp-x-size @ bmp-y-size @ * 1 - 3 * + offset !
-  255 bmp-address @ offset @ + 0 + C!  
-  255 bmp-address @ offset @ + 1 + C!  
-  255 bmp-address @ offset @ + 2 + C!  
-  1000 ms bmp-address @ bmp-to-screen-stretch
-
-  1000 ms 
-  cr ." Ending single pixel paint test " 
-  bmp-window-handle @ DestroyWindow drop  { Kill of display window                       }
-  cr cr
-  ;
-
 
 
 { --------------------------------  Testing procedures  -------------------------------- }
@@ -671,28 +697,30 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
   width @ dup *  size !
   64 bmp-x-size !                             
   64 bmp-y-size ! 
-  1 5 3 array_!
-  1 5 4 array_!
-  1 5 5 array_!
-  1 6 5 array_!
-  1 7 4 array_!
+  1 20 18 array_!
+  1 20 19 array_!
+  1 20 20 array_!
+  1 21 20 array_!
+  1 22 19 array_!
   ;
 
 : methu_one { This generates the stable seed, should be used on a 8x8 array }
-  1000 width !
+  256 width !
   width @ dup *  size !
-  1 400 400 array_!
-  1 401 400 array_!
-  1 402 400 array_!
-  1 399 401 array_!
-  1 399 402 array_!
+  256 bmp-x-size !                             
+  256 bmp-y-size ! 
+  1 200 200 array_!
+  1 201 200 array_!
+  1 202 200 array_!
+  1 199 201 array_!
+  1 199 202 array_!
  
  ;
 { --------------------------------  Running Program  -------------------------------- }
 
 reset_array
 reset_array_temp
-glider
+
 Setup-Test-Memory {  Initially sets up the bmp to be processed  }
 
 go-stretch  {  Runs the program  }
