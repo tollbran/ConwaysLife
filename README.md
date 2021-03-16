@@ -12,4 +12,4 @@ v3 - Added fixed borders, ability to measure statistical data.
 
 v4 - Changed borders to be wrapped.
 
-# ----------------------- How to use this code ----------------------------
+# ----------------------- How to use this code --------------------------
