@@ -1,14 +1,14 @@
 
-{ ---------------------------------------------------------------------------------------- }
-{                                                                                          }
-{ Words to create bitmap image files ( .bmp) in memory and display them as part of         } 
-{ a real time data visualisation routine - fixed and stretchable window version V6.        }
-{                                                                                          }
-{ This version prints the .bmp into windows separate from the console, requiring some      }
-{ additional operating system specific (Windows, Mac OSX etc) code to build and "talk"     }
-{ to the new window.                                                                       }
-{                                                                                          }
-{ ---------------------------------------------------------------------------------------- }
+{ ------------------------------------------------------------------------------------------- }
+{                                                                                             }
+{ Brandon Tollan Conways_life.final.f code last updated on 17/03/21                           } 
+{ 																					          }
+{                                                                                             }
+{ This version contains all the code needed to investigate the basic rules of conways life    }
+{ in addition to investigating the phase transitions due to the rule set                      }
+{                                                                                             }
+{ The instructions of how to use this code are specified in the README file in same directory }
+{ ------------------------------------------------------------------------------------------- }
 
 { ------------------------------- Global constants and variables ---------------------------- }
 
@@ -257,7 +257,7 @@ make_small_array CONSTANT array_temp { Makes a temp array used to transfer data 
 		y_pos @ 1 + y_pos !
 	THEN
 	
-	100 RND sync <                            { Checking if a random no 0-100 less than the sync threshold }
+	100 RND sync @ <                            { Checking if a random no 0-100 less than the sync threshold }
 	IF 
 		0 neighbours !                        { Reset neigbour count                                       }
 		array I + pixel_loc !                 { Store the position of cell in question in variable         }
@@ -507,8 +507,8 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
   New-bmp-Window-stretch              { Create new "stretch" window                     }
   bmp-window-handle !                 { Store window handle                             }
   make-test-file
-  { fill_array }                          { Fills the array with a random set of 1-0s       }
-  cycles 0 DO
+  fill_array                          { Fills the array with a random set of 1-0s       }
+  cycles @ 0 DO
   
 	{  All code which runs the program goes here  }
   
@@ -660,8 +660,8 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
 
 { Alter these variables to run }
 
-10000 cycles !  { Changes to specify no of cycles before simulation ends           }
-100 sync !      { Change to alter the syncronicity of the system: 0-100            }
+1000 cycles !  { Changes to specify no of cycles before simulation ends           }
+20 sync !      { Change to alter the syncronicity of the system: 0-100            }
 50 weighting !  { Change to alter the initial chance of a cell being alive: 0-100  }
 128 width !     { Change to alter the initial width of the grid                    }
 
@@ -669,7 +669,7 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
 reset_array
 reset_array_temp
 
-methu_one         { Write your test seed here }
+{ methu_one }         { Write your test seed here }
 
 Setup-Test-Memory { Initially sets up the bmp to be processed  }
 go-stretch        {  Runs the program  }
