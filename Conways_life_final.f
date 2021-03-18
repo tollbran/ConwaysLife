@@ -67,6 +67,8 @@ variable cycles             { Sets the number of cycles the simulation will run 
 
 variable sync               { Stores the synconicty                                           }
 
+variable activity           { Stores activity at each step                                    }
+
 128 bmp-x-size !                               { Set default x size of bmp in pixels          }
 
 128 bmp-y-size !                               { Set y default size of bmp in pixels          }
@@ -101,13 +103,13 @@ variable test-file-id                             { Create Variable to hold file
 
 
 : make-test-file                                                                   { Create a test file to read / write to  }
-  s" C:\ForthInc-Evaluation\Projects\ConwaysLife\methu.dat" r/w create-file drop     { Create the file                        } 
+  s" C:\ForthInc-Evaluation\Projects\ConwaysLife\test.dat" r/w create-file drop     { Create the file                        } 
   test-file-id !                                                                   { Store file handle for later use        }
 ;
 
  
 : open-test-file                                                                   { Open the file for read/write access    }
-  s" C:\ForthInc-Evaluation\Projects\ConwaysLife\methu.dat" r/w open-file drop       { Not needed if we have just created     }
+  s" C:\ForthInc-Evaluation\Projects\ConwaysLife\test.dat" r/w open-file drop       { Not needed if we have just created     }
   test-file-id !                                                                   { file.                                  }
 ;
 
@@ -129,7 +131,11 @@ variable test-file-id                             { Create Variable to hold file
   s"  "     test-file-id @ write-file drop          { Creates a blank space next to it                         }
   s"  "     test-file-id @ write-file drop          { Creates a blank space next to it                         }
   s"  "     test-file-id @ write-file drop          { Creates a blank space next to it                         }
-  alive_cells @  (.) test-file-id @ write-line drop { Writes the data in the alive cells, creates a new line   }
+  alive_cells @  (.) test-file-id @ write-file drop { Writes the data in the alive cells, creates a new line   }
+  s"  "     test-file-id @ write-file drop          { Creates a blank space next to it                         }
+  s"  "     test-file-id @ write-file drop          { Creates a blank space next to it                         }
+  s"  "     test-file-id @ write-file drop          { Creates a blank space next to it                         }
+  activity @  (.) test-file-id @ write-line drop    { Writes the data in the alive cells, creates a new line   }
 ;
 
 { -------------------------  Random number routine for testing ------------------------- } 
@@ -270,11 +276,13 @@ make_small_array CONSTANT array_temp { Makes a temp array used to transfer data 
 		  1 array_temp I + c!                 { Sets cell to alive                                         }
 		 ELSE
 		  0 array_temp I + c!                 { Sets cell to dead                                          }
+		  1 activity @ + activity !
 		 THEN
 		ELSE                                  { Else the cell in question is dead                          }
 		 neighbours @ 3 =                     { Rule if there is 3 live cells next to dead revive          }
 		 IF
 		  1 array_temp I + c!                 { Sets cell to alive                                         }
+		  1 activity @ + activity !
 		 ELSE
 		  0 array_temp I + c!                 { Sets cell to dead                                          }                                         
 		 THEN
@@ -514,6 +522,7 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
   
 	0 pos !
 	0 alive_cells !
+	0 activity !
 	bmp-address @ set-pixel             { Reads the array and puts associated data in bnp }
 	bmp-address @ bmp-to-screen-stretch { Stretch .bmp to display window                  }
 	pixel_update                        { Enforces life rules and output to temp array    }
@@ -660,7 +669,7 @@ bmp-APP-CLASS                   { Call class for displaying bmp's in a child win
 
 { Alter these variables to run }
 
-1000 cycles !  { Changes to specify no of cycles before simulation ends           }
+3000 cycles !  { Changes to specify no of cycles before simulation ends           }
 20 sync !      { Change to alter the syncronicity of the system: 0-100            }
 50 weighting !  { Change to alter the initial chance of a cell being alive: 0-100  }
 128 width !     { Change to alter the initial width of the grid                    }
