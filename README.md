@@ -1,6 +1,8 @@
 # ConwaysLife
 Forth code for Conways Life.
-Created by Brandon Tollan Imperial College London
+Created by Brandon Tollan 
+Imperial College London
+18/03/21
 
 # Version details
 
