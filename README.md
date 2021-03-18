@@ -2,7 +2,7 @@
 Forth code for Conways Life.
 Created by Brandon Tollan Imperial College London
 
-# --------------------------- Version details -------------------
+# Version details
 
 v1 - Added basic Conways Life rules and cell detection
 
@@ -14,7 +14,7 @@ v4 - Changed borders to be wrapped.
 
 vfinal - Added mor statstical analysis including activity.
 
-# ----------------------- How to use this code ----------------
+# How to use this code 
 
 There are four main variables for you to alter at the bottom of the doc.
 
